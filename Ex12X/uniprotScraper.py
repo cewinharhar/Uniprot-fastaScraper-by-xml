@@ -10,7 +10,9 @@ modul2
 
 # chooser working directoriy
 import os
-path = r"C:\Users\kevin\OneDrive - ZHAW\KEVIN STUFF\ZHAW\MASTER\V5_1_Programming Algorithms and Data-Structures\Ex12X"
+
+from numpy import isin
+path = r"S:\Big_No_Backup\Kevin\biognosys-research\Kevin_Yar\Ex12X"
 os.chdir(path)
 #Get internet stuff
 from urllib import request
@@ -23,12 +25,18 @@ from datetime import datetime
 from time import sleep
 #to pickle / jason
 import json
-""" import pickle """ 
 
+import pandas as pd
+import numpy as np
 
+########################################################################################################
+########################################################################################################
 #load xml file from uniprot
 
-def uniprotScraper(protList, save="n"):
+def uniprotScraper(protList, save="n", path=""):
+    """ this function scrapes through uniprot and gets the most important information like, proteinname, organism and AA sequence
+    Just insert protList a list with uniprot ID's and select if you want to save the JSON file with save to be either n = no oder y= yes.
+    Furthermore add an output FOLDER path. If you want to save the JSON file in a panda just pandas.read_json() this thing"""
 
     if isinstance(protList, io.IOBase):
         pro = []
@@ -43,6 +51,8 @@ def uniprotScraper(protList, save="n"):
         
     if isinstance(protList, list):
         pass
+    elif isinstance(protList, pd.Series) or isinstance(protList, np.ndarray):
+        protList = list(protList)
     else:
         print("The input is neither a list nor a open() object")
 
@@ -91,12 +101,16 @@ def uniprotScraper(protList, save="n"):
             print("No Protein Name found")
             name.append("-")
             pass
+        #get organism
         try:
             orga.append(str(bsRe.uniprot.entry.organism.select("[type~=common]")[0]))
         except:
             print("No Protein Organism found")
             orga.append("-")
             pass
+
+
+        #get sequence
         try:
             if not bsRe.uniprot.entry.sequence.string == None:
                 seq.append(str(bsRe.uniprot.entry.sequence.string))
@@ -110,13 +124,13 @@ def uniprotScraper(protList, save="n"):
             pass
  
 
-    dic["uniprotID"] = protList
+    dic["uniprot"] = protList
     dic["proteinName"] = name
     dic["organism"] = orga
     dic["fastaSequence"] = seq
 
     if save == "y":
-        saveJson(dic)
+        saveJson(dic, path=path)
 
     print(""" |￣￣￣￣￣￣￣￣￣￣￣|
         
@@ -129,9 +143,23 @@ def uniprotScraper(protList, save="n"):
             |   | """)   
     return dic
 
-def saveJson(element):
+def saveJson(element, path=""):
     #save json 
     JSON = open(os.path.join(path, datetime.now().strftime("%Y_%m_%d__%H_%M")+"_uniprotScraperDict.json"), "w")
     json.dump(element, JSON)
     JSON.close()
 
+########################################################################################################
+########################################################################################################
+source = r"C:\Users\Kevin.Yar\Projects\biognosys-research\Kevin_Yar\_DataPrep_Simultan\menu3\missingProteinNames.csv"
+exit = r"C:\Users\Kevin.Yar\Projects\biognosys-research\Kevin_Yar\_DataPrep_Simultan\menu3"
+names = pd.read_csv(source)
+
+uniprotScraper(names.uniprot.unique(), save="y", path=exit)
+
+
+
+yeah = pd.read_json(r"C:\Users\Kevin.Yar\Projects\biognosys-research\Kevin_Yar\_DataPrep_Simultan\menu3\2022_02_16__15_07_uniprotScraperDict.json")
+yeah.to_csv(r"uniprotNamenExtended.csv")
+
+p = "Q9Y547"
