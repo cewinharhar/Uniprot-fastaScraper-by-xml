@@ -26,6 +26,7 @@ from time import sleep
 #to pickle / jason
 import json
 
+
 import pandas as pd
 import numpy as np
 
@@ -72,28 +73,10 @@ def uniprotScraper(protList, save="n", path=""):
     liLen = len(protList)
     animation = ["[■□□□□□□□□□]","[■■□□□□□□□□]", "[■■■□□□□□□□]", "[■■■■□□□□□□]", "[■■■■■□□□□□]", "[■■■■■■□□□□]", "[■■■■■■■□□□]", "[■■■■■■■■□□]", "[■■■■■■■■■□]", "[■■■■■■■■■■]"]
     for nr, p in enumerate(protList):
+
+        print(f"Process: {nr} / {len(protList)}", end='\r')
         #countdown animation
-        if nr < liLen * 0.1:
-            print(animation[0], end='\r') 
-        if  liLen * 0.2 < nr < liLen * 0.3:
-            print(animation[1], end='\r')
-        if liLen * 0.3 < nr < liLen * 0.4:
-            print(animation[2], end='\r')
-        if liLen * 0.4 < nr < liLen * 0.5:
-            print(animation[3], end='\r')
-        if liLen * 0.5 < nr < liLen * 0.6:
-            print(animation[4], end='\r')
-        if liLen * 0.6 < nr < liLen * 0.7:
-            print(animation[5], end='\r')
-        if liLen * 0.7 < nr < liLen * 0.8:
-            print(animation[6], end='\r')
-        if liLen * 0.8 < nr < liLen * 0.9:
-            print(animation[7], end='\r')
-        if liLen * 0.9 < nr < liLen:
-            print(animation[8], end='\r')
-        if nr == liLen:
-            print(animation[9], end='\r')
-            sleep(1)
+
             
         #get url
         request_ = request.urlopen('https://www.uniprot.org/uniprot/' + p + '.xml.gz').read() #load compressed uniprot xml site
@@ -128,13 +111,15 @@ def uniprotScraper(protList, save="n", path=""):
                 seq.append(str(bsRe.uniprot.entry.sequence.string))
             else:
                 raise AttributeError
-        except AttributeError:
-            seq.append(str(bsRe.find_all("sequence")[-1].string)) #searches the last element from multiple sequence entry
+                
         except:
-            print("No Protein Sequence for "+str(protList[nr])+ " found")
-            seq.append("-")
-            pass
- 
+            try:
+                seq.append(str(bsRe.find_all("sequence")[-1].string)) #searches the last element from multiple sequence entry
+            except:
+                print("No Protein Sequence for  found")
+                seq.append("-")
+                pass
+            
 
     dic["uniprot"] = protList
     dic["proteinName"] = name
@@ -163,17 +148,20 @@ def saveJson(element, path=""):
     JSON.close()
 
 ########################################################################################################
-########################################################################################################
-source = r"S:\Ana\2022\821_Depletion_Panel_Designer_DPD\menu3\missingProteinNames.csv"
+
+source = r"C:\Users\Kevin.Yar\Projects\biognosys-research\Kevin_Yar\informationGathering\uniprotList.csv"
 exit = r"C:\Users\Kevin.Yar\Projects\biognosys-research\Kevin_Yar\_DataPrep_Simultan\menu3"
 names = pd.read_csv(source)
 
+#get uniprot information
 uniprotScraper(names.uniprot.unique(), save="y", path=exit)
 
+#read in the created json file
+yeah = pd.read_json(r"C:\Users\Kevin.Yar\Projects\biognosys-research\Kevin_Yar\_DataPrep_Simultan\menu3\2022_03_17__17_04_uniprotScraperDict.json")
 
-
-yeah = pd.read_json(r"C:\Users\Kevin.Yar\Projects\biognosys-research\Kevin_Yar\_DataPrep_Simultan\menu3\2022_03_17__15_05_uniprotScraperDict.json")
-yeah.to_csv(r"uniprotNamenExtended.csv")
-
+#add the molecular properties to each protein
+os.chdir(r"S:\Big_No_Backup\Kevin\Uniprot-fastaScraper-by-xml\Ex12X")
+import biopython
+biopython.proteinInfos(yeah, "y")
 
 #query=P178616&fields=accession,id,entry name,reviewed,protein names,genes,organism,length
