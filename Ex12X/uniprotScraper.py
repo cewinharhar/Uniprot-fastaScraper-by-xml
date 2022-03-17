@@ -12,7 +12,7 @@ modul2
 import os
 
 from numpy import isin
-path = r"S:\Big_No_Backup\Kevin\biognosys-research\Kevin_Yar\Ex12X"
+path = r"C:\Users\Kevin.Yar\Projects\biognosys-research\Kevin_Yar\_DataPrep_Simultan\menu3"
 os.chdir(path)
 #Get internet stuff
 from urllib import request
@@ -28,6 +28,9 @@ import json
 
 import pandas as pd
 import numpy as np
+
+import re
+
 
 ########################################################################################################
 ########################################################################################################
@@ -63,6 +66,7 @@ def uniprotScraper(protList, save="n", path=""):
 
     dic = {}
     name = []
+    gene = []
     orga = []
     seq = []
     liLen = len(protList)
@@ -92,8 +96,8 @@ def uniprotScraper(protList, save="n", path=""):
             sleep(1)
             
         #get url
-        re = request.urlopen('https://www.uniprot.org/uniprot/' + p + '.xml.gz').read() #load compressed uniprot xml site
-        bsRe = bs(gzip.decompress(re),'lxml') #from binary to readably and transform to beautifulsoup format
+        request_ = request.urlopen('https://www.uniprot.org/uniprot/' + p + '.xml.gz').read() #load compressed uniprot xml site
+        bsRe = bs(gzip.decompress(request_),'lxml') #from binary to readably and transform to beautifulsoup format
         #get protein name
         try:
             name.append(str(bsRe.uniprot.entry.protein.fullname.string))
@@ -101,14 +105,22 @@ def uniprotScraper(protList, save="n", path=""):
             print("No Protein Name found")
             name.append("-")
             pass
+
+            #get gene
+        try:
+            geneString = str(bsRe.uniprot.entry.gene.select("name"))
+            geneString = re.search(r'>(.*?)<', geneString).group(1)
+            gene.append(geneString)
+        except:
+            gene.append("-")
+            pass
         #get organism
         try:
-            orga.append(str(bsRe.uniprot.entry.organism.select("[type~=common]")[0]))
+            organismString = str(bsRe.uniprot.entry.organism.select("name"))
+            orga.append(re.search(r'>(.*?)<',organismString).group(1))
         except:
-            print("No Protein Organism found")
             orga.append("-")
             pass
-
 
         #get sequence
         try:
@@ -126,6 +138,7 @@ def uniprotScraper(protList, save="n", path=""):
 
     dic["uniprot"] = protList
     dic["proteinName"] = name
+    dic["gene"] = gene
     dic["organism"] = orga
     dic["fastaSequence"] = seq
 
@@ -151,7 +164,7 @@ def saveJson(element, path=""):
 
 ########################################################################################################
 ########################################################################################################
-source = r"C:\Users\Kevin.Yar\Projects\biognosys-research\Kevin_Yar\_DataPrep_Simultan\menu3\missingProteinNames.csv"
+source = r"S:\Ana\2022\821_Depletion_Panel_Designer_DPD\menu3\missingProteinNames.csv"
 exit = r"C:\Users\Kevin.Yar\Projects\biognosys-research\Kevin_Yar\_DataPrep_Simultan\menu3"
 names = pd.read_csv(source)
 
@@ -159,7 +172,8 @@ uniprotScraper(names.uniprot.unique(), save="y", path=exit)
 
 
 
-yeah = pd.read_json(r"C:\Users\Kevin.Yar\Projects\biognosys-research\Kevin_Yar\_DataPrep_Simultan\menu3\2022_02_16__15_07_uniprotScraperDict.json")
+yeah = pd.read_json(r"C:\Users\Kevin.Yar\Projects\biognosys-research\Kevin_Yar\_DataPrep_Simultan\menu3\2022_03_17__15_05_uniprotScraperDict.json")
 yeah.to_csv(r"uniprotNamenExtended.csv")
 
-p = "Q9Y547"
+
+#query=P178616&fields=accession,id,entry name,reviewed,protein names,genes,organism,length
