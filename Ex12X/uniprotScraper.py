@@ -69,6 +69,8 @@ def uniprotScraper(protList, save="n", path=""):
     name = []
     gene = []
     orga = []
+    stringID = []
+
     seq = []
     liLen = len(protList)
     animation = ["[■□□□□□□□□□]","[■■□□□□□□□□]", "[■■■□□□□□□□]", "[■■■■□□□□□□]", "[■■■■■□□□□□]", "[■■■■■■□□□□]", "[■■■■■■■□□□]", "[■■■■■■■■□□]", "[■■■■■■■■■□]", "[■■■■■■■■■■]"]
@@ -119,7 +121,15 @@ def uniprotScraper(protList, save="n", path=""):
                 print("No Protein Sequence for  found")
                 seq.append("-")
                 pass
-            
+        # get STRING ID
+        try:
+            for i in bsRe.uniprot.entry:
+                i = str(i)
+                if "STRING" in i:
+                    i = re.search(r'"(.*?)"', i).group(1)
+                    stringID.append(i)           
+        except:
+            stringID.append("-")
 
     dic["uniprot"] = protList
     dic["proteinName"] = name
@@ -140,6 +150,126 @@ def uniprotScraper(protList, save="n", path=""):
             ---
             |   | """)   
     return dic
+
+#########################################################
+############  column cbinder ############################
+
+def uniprotScraperColumnBind(df, column = None, save="n", path=""):
+    """ This function is an addition to the original uniprotScraperColumnBind function. It just cbinds a missing column"""
+
+    if column == None:
+        return print("please specify which column you want to add. \n choose either name, gene, organism, sequence, stringID ")
+    elif column in df.columns:
+        return print("Column is already present")
+    elif not isinstance(column, list):
+        column = [column]
+        
+
+    print(df.columns)
+    print(f"Add column {column}")
+    input("Passt das so?")
+        
+    if not( isinstance(df, pd.Series) or isinstance(df, pd.DataFrame) or isinstance(df, np.ndarray)):
+        return print("The input is neither a dataframe nor a np.array object")
+    else:
+        dfUniprot = list(df.uniprot)
+
+    dic = {}
+    name = []
+    gene = []
+    orga = []
+    stringID = []
+    seq = []
+
+    liLen = len(dfUniprot)
+
+    for nr, p in enumerate(dfUniprot):
+
+        print(f"Process: {nr} / {len(dfUniprot)}", end='\r')
+        #countdown animation
+
+            
+        #get url
+        request_ = request.urlopen('https://www.uniprot.org/uniprot/' + p + '.xml.gz').read() #load compressed uniprot xml site
+        bsRe = bs(gzip.decompress(request_),'lxml') #from binary to readably and transform to beautifulsoup format
+
+        if "name" in column:
+            #get protein name
+            try:
+                name.append(str(bsRe.uniprot.entry.protein.fullname.string))
+                continue
+            except:
+                print("No Protein Name found")
+                name.append("-")
+                continue
+        elif "gene" in column:
+            #get gene
+            try:
+                geneString = str(bsRe.uniprot.entry.gene.select("name"))
+                geneString = re.search(r'>(.*?)<', geneString).group(1)
+                gene.append(geneString)
+                continue
+            except:
+                gene.append("-")
+                continue
+
+        elif "organism" in column:
+            #get organism
+            try:
+                organismString = str(bsRe.uniprot.entry.organism.select("name"))
+                orga.append(re.search(r'>(.*?)<',organismString).group(1))
+                continue
+            except:
+                orga.append("-")
+                continue
+
+        elif "sequence" in column:
+            #get sequence
+            try:
+                if not bsRe.uniprot.entry.sequence.string == None:
+                    seq.append(str(bsRe.uniprot.entry.sequence.string))
+                    continue 
+                else:
+                    raise AttributeError
+                    continue 
+                    
+            except:
+                try:
+                    seq.append(str(bsRe.find_all("sequence")[-1].string)) #searches the last element from multiple sequence entry
+                    continue 
+                except:
+                    print("No Protein Sequence for  found")
+                    seq.append("-")
+                    continue 
+
+        elif "stringID" in column:
+        # get STRING ID
+            try:
+                for i in bsRe.uniprot.entry:
+                    i = str(i)
+                    if "STRING" in i:
+                        i = re.search(r'"(.*?)"', i).group(1)
+                        stringID.append(i)
+                        continue            
+            except:
+                stringID.append("-")
+            
+    if "proteinName" in column:
+        dic["proteinName"] = name
+    elif "gene" in column:
+        dic["gene"] = gene
+    elif "organism" in column:
+        dic["organism"] = orga
+    elif "sequence" in column:
+        dic["fastaSequence"] = seq
+    elif "stringID" in column:    
+        dic["stringID"] = stringID
+    
+    df_ = pd.DataFrame.from_dict(dic)
+    df_new = pd.concat([df, df_], axis=1)
+
+    print("Done")   
+    return df_new
 
 def saveJson(element, path=""):
     #save json 
@@ -165,3 +295,7 @@ import biopython
 biopython.proteinInfos(yeah, "y")
 
 #query=P178616&fields=accession,id,entry name,reviewed,protein names,genes,organism,length
+df1 = pd.read_csv(r"S:\Ana\2022\821_Depletion_Panel_Designer_DPD\menu3\proteinSeqInfoExt.csv")
+
+#dfWh = uniprotScraperColumnBind(df1, column = "stringID")
+dfWh.to_csv(r"S:\Ana\2022\821_Depletion_Panel_Designer_DPD\menu3\proteinSeqInfoExt.csv")
