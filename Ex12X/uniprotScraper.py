@@ -38,6 +38,7 @@ import re
 #load xml file from uniprot
 
 def uniprotScraper(protList, save="n", path=""):
+    global result
     """ this function scrapes through uniprot and gets the most important information like, proteinname, organism and AA sequence
     Just insert protList a list with uniprot ID's and select if you want to save the JSON file with save to be either n = no oder y= yes.
     Furthermore add an output FOLDER path. If you want to save the JSON file in a panda just pandas.read_json() this thing"""
@@ -51,7 +52,10 @@ def uniprotScraper(protList, save="n", path=""):
         protList = pro
 
     print(protList)
-    input("Passt das so?")
+    ok = input("Passt das so?")
+
+    if ok == "n" or ok == "no":
+        return print("ok")
         
     if isinstance(protList, list):
         pass
@@ -79,17 +83,18 @@ def uniprotScraper(protList, save="n", path=""):
         print(f"Process: {nr} / {len(protList)}", end='\r')
         #countdown animation
 
-            
-        #get url
-        request_ = request.urlopen('https://www.uniprot.org/uniprot/' + p + '.xml.gz').read() #load compressed uniprot xml site
-        bsRe = bs(gzip.decompress(request_),'lxml') #from binary to readably and transform to beautifulsoup format
+        try:  
+            #get url
+            request_ = request.urlopen('https://www.uniprot.org/uniprot/' + p + '.xml.gz').read() #load compressed uniprot xml site
+            bsRe = bs(gzip.decompress(request_),'lxml') #from binary to readably and transform to beautifulsoup format
+        except:
+            pass
         #get protein name
         try:
             name.append(str(bsRe.uniprot.entry.protein.fullname.string))
         except:
             print("No Protein Name found")
             name.append("-")
-            pass
 
             #get gene
         try:
@@ -98,14 +103,14 @@ def uniprotScraper(protList, save="n", path=""):
             gene.append(geneString)
         except:
             gene.append("-")
-            pass
+
         #get organism
         try:
             organismString = str(bsRe.uniprot.entry.organism.select("name"))
             orga.append(re.search(r'>(.*?)<',organismString).group(1))
         except:
             orga.append("-")
-            pass
+
 
         #get sequence
         try:
@@ -113,21 +118,33 @@ def uniprotScraper(protList, save="n", path=""):
                 seq.append(str(bsRe.uniprot.entry.sequence.string))
             else:
                 raise AttributeError
-                
+
         except:
             try:
                 seq.append(str(bsRe.find_all("sequence")[-1].string)) #searches the last element from multiple sequence entry
             except:
                 print("No Protein Sequence for  found")
                 seq.append("-")
-                pass
+
         # get STRING ID
+        add_ = ""
         try:
             for i in bsRe.uniprot.entry:
                 i = str(i)
-                if "STRING" in i:
-                    i = re.search(r'"(.*?)"', i).group(1)
-                    stringID.append(i)           
+                if not "STRING" in i:
+                    add_ = "-"
+                else:
+                    add_ = i
+                    break
+            
+            if add_ == "-":
+                stringID.append("-")
+            else:
+                i = re.search(r'"(.*?)"', add_).group(1)
+                stringID.append(i) 
+
+             
+            
         except:
             stringID.append("-")
 
@@ -136,9 +153,16 @@ def uniprotScraper(protList, save="n", path=""):
     dic["gene"] = gene
     dic["organism"] = orga
     dic["fastaSequence"] = seq
+    dic["stringID"] = stringID
 
     if save == "y":
-        saveJson(dic, path=path)
+        try:
+            saveJson(dic, path=path)
+        except:
+            print("saving result in variable result")
+            result = dic
+
+    result = dic
 
     print(""" |￣￣￣￣￣￣￣￣￣￣￣|
         
@@ -279,15 +303,23 @@ def saveJson(element, path=""):
 
 ########################################################################################################
 
-source = r"C:\Users\Kevin.Yar\Projects\biognosys-research\Kevin_Yar\informationGathering\uniprotList.csv"
-exit = r"C:\Users\Kevin.Yar\Projects\biognosys-research\Kevin_Yar\_DataPrep_Simultan\menu3"
-names = pd.read_csv(source)
+source = r"S:\Ana\2022\821_Depletion_Panel_Designer_DPD\menu3\ROLANDTASK\missingUni.csv"
+exit = r"S:\Ana\2022\821_Depletion_Panel_Designer_DPD\menu3\ROLANDTASK"
+names = pd.read_csv(source, header=0)
 
 #get uniprot information
 uniprotScraper(names.uniprot.unique(), save="y", path=exit)
 
+
+pd.DataFrame.from_dict(result)
+
+for i in ["proteinName", "gene", "organism", "fastaSequence", "stringID"]:
+    print(i)
+    print(len(result[i]))
+
 #read in the created json file
-yeah = pd.read_json(r"C:\Users\Kevin.Yar\Projects\biognosys-research\Kevin_Yar\_DataPrep_Simultan\menu3\2022_03_17__17_04_uniprotScraperDict.json")
+yeah = pd.read_json(r"S:\Ana\2022\821_Depletion_Panel_Designer_DPD\menu3\ROLANDTASK\2022_03_25__17_22_uniprotScraperDict.json")
+yeah.to_csv(r"S:\Ana\2022\821_Depletion_Panel_Designer_DPD\menu3\ROLANDTASK\seqInfo.csv")
 
 #add the molecular properties to each protein
 os.chdir(r"S:\Big_No_Backup\Kevin\Uniprot-fastaScraper-by-xml\Ex12X")
@@ -297,5 +329,3 @@ biopython.proteinInfos(yeah, "y")
 #query=P178616&fields=accession,id,entry name,reviewed,protein names,genes,organism,length
 df1 = pd.read_csv(r"S:\Ana\2022\821_Depletion_Panel_Designer_DPD\menu3\proteinSeqInfoExt.csv")
 
-#dfWh = uniprotScraperColumnBind(df1, column = "stringID")
-dfWh.to_csv(r"S:\Ana\2022\821_Depletion_Panel_Designer_DPD\menu3\proteinSeqInfoExt.csv")
