@@ -26,7 +26,6 @@ from time import sleep
 #to pickle / jason
 import json
 
-
 import pandas as pd
 import numpy as np
 
@@ -136,15 +135,22 @@ def uniprotScraper(protList, save="n", path=""):
                 else:
                     add_ = i
                     break
-            
+
+            for i in bsRe.uniprot.entry.find_all('dbreference'):
+                                if not i['type']=='STRING':
+                                    add_ = "-" 
+                                elif i['type']=='STRING':
+                                    #print(i["id"])
+                                    add_ = i['id']
+                                    break
+
             if add_ == "-":
                 stringID.append("-")
             else:
-                i = re.search(r'"(.*?)"', add_).group(1)
-                stringID.append(i) 
-
+                stringID.append(add_)
+                #i = re.search(r'"(.*?)"', add_).group(1)
+                #stringID.append(i)
              
-            
         except:
             stringID.append("-")
 
@@ -240,8 +246,11 @@ def uniprotScraperColumnBind(df, column = None, save="n", path=""):
         elif "organism" in column:
             #get organism
             try:
-                organismString = str(bsRe.uniprot.entry.organism.select("name"))
-                orga.append(re.search(r'>(.*?)<',organismString).group(1))
+                organismString = bsRe.uniprot.entry.organism.select("name")
+                try:
+                    orga.append(organismString[0].string)
+                except:
+                    orga.append(re.search(r'>(.*?)<',organismString).group(1))
                 continue
             except:
                 orga.append("-")
@@ -269,12 +278,12 @@ def uniprotScraperColumnBind(df, column = None, save="n", path=""):
         elif "stringID" in column:
         # get STRING ID
             try:
-                for i in bsRe.uniprot.entry:
-                    i = str(i)
-                    if "STRING" in i:
-                        i = re.search(r'"(.*?)"', i).group(1)
-                        stringID.append(i)
-                        continue            
+                for i in bsRe.uniprot.entry.find_all('dbreference'):
+                                    if i['type']=='STRING':
+                                        print(i["id"])
+                                        stringID.append(i['id'])
+                                        continue
+       
             except:
                 stringID.append("-")
             
