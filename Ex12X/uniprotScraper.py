@@ -312,23 +312,23 @@ def saveJson(element, path=""):
 
 ########################################################################################################
 
-source = r"S:\Ana\2022\821_Depletion_Panel_Designer_DPD\menu3\ROLANDTASK\missingUni.csv"
-exit = r"S:\Ana\2022\821_Depletion_Panel_Designer_DPD\menu3\ROLANDTASK"
+source = r"S:\Ana\2022\821_Depletion_Panel_Designer_DPD\menu3\AHH.csv"
+exit = r"S:\Ana\2022\821_Depletion_Panel_Designer_DPD\menu3"
 names = pd.read_csv(source, header=0)
 
 #get uniprot information
 uniprotScraper(names.uniprot.unique(), save="y", path=exit)
 
 
-pd.DataFrame.from_dict(result)
+a <- pd.DataFrame.from_dict(result)
 
 for i in ["proteinName", "gene", "organism", "fastaSequence", "stringID"]:
     print(i)
     print(len(result[i]))
 
 #read in the created json file
-yeah = pd.read_json(r"S:\Ana\2022\821_Depletion_Panel_Designer_DPD\menu3\ROLANDTASK\2022_03_25__17_22_uniprotScraperDict.json")
-yeah.to_csv(r"S:\Ana\2022\821_Depletion_Panel_Designer_DPD\menu3\ROLANDTASK\seqInfo.csv")
+yeah = pd.read_json(r"S:\Ana\2022\821_Depletion_Panel_Designer_DPD\menu3\2022_03_31__12_38_uniprotScraperDict.json")
+yeah.to_csv(r"S:\Ana\2022\821_Depletion_Panel_Designer_DPD\menu3\seqInfo.csv")
 
 #add the molecular properties to each protein
 os.chdir(r"S:\Big_No_Backup\Kevin\Uniprot-fastaScraper-by-xml\Ex12X")
